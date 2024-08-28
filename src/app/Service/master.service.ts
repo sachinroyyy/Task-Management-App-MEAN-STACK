@@ -1,29 +1,32 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiResponceModel, Task } from '../model/task';
+import { ApiResponceModel, ITask, Task } from '../model/task';
 
 @Injectable({
   providedIn: 'root',
 })
 export class MasterService {
-  // In service we will only write the api call function
+  private apiUrl = 'http://localhost:5000/api/v1/task'; // Adjust if needed
 
-  apiUrl = 'https://freeapi.gerasim.in/api/JWT/';
   constructor(private http: HttpClient) {}
 
   getAllTaskList(): Observable<ApiResponceModel> {
-    return this.http.get<ApiResponceModel>(this.apiUrl + 'GetAllTaskList');
+    return this.http.get<ApiResponceModel>(`${this.apiUrl}/getall`);
   }
-  addNewTask(obj: Task): Observable<ApiResponceModel> {
-    return this.http.post<ApiResponceModel>(this.apiUrl + 'CreateNewTask', obj);
+
+  addTask(task: Task): Observable<ApiResponceModel> {
+    return this.http.post<ApiResponceModel>(`${this.apiUrl}/addtask`, task);
   }
-  updateTask(obj: Task): Observable<ApiResponceModel> {
-    return this.http.put<ApiResponceModel>(this.apiUrl + 'UpdateTask', obj);
-  }
-  deleteTask(id: number): Observable<ApiResponceModel> {
-    return this.http.delete<ApiResponceModel>(
-      this.apiUrl + 'DeleteTask?itemId=' + id
+
+  updateTask(task: Task): Observable<ApiResponceModel> {
+    return this.http.put<ApiResponceModel>(
+      `${this.apiUrl}/update/${task.itemId}`,
+      task
     );
+  }
+
+  deleteTask(id: number): Observable<ApiResponceModel> {
+    return this.http.delete<ApiResponceModel>(`${this.apiUrl}/delete/${id}`);
   }
 }

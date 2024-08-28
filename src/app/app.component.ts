@@ -4,11 +4,13 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { ApiResponceModel, ITask, Task } from './model/task';
 import { FormsModule } from '@angular/forms';
+import { NgFor } from '@angular/common';
+import { NgIf } from '@angular/common';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, DatePipe, FormsModule],
+  imports: [RouterOutlet, DatePipe, FormsModule, NgFor, NgIf],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -25,63 +27,95 @@ export class AppComponent implements OnInit {
       this.taskList = res.data;
     });
   }
-  addTask() {
-    this.masterService.addNewTask(this.taskObj).subscribe(
-      (res: ApiResponceModel) => {
-        if (res.result) {
-          alert('Task added successfully');
-          this.loadAllTask();
-          this.taskObj = new Task();
-        }
-      },
-      (error) => {
-        alert('Error while adding task / api call error');
-      }
-    );
+
+  resetTaskObj() {
+    this.taskObj = new Task();
   }
+
+  addTask() {
+    if (
+      this.taskObj.taskName &&
+      this.taskObj.dueDate &&
+      this.taskObj.priority &&
+      this.taskObj.status
+    ) {
+      // Clone the task object to avoid reference issues
+      const newTask = { ...this.taskObj, itemId: this.taskList.length + 1 };
+      this.taskList.push(newTask);
+
+      // Reset the taskObj for new task entry
+      this.resetTaskObj();
+    } else {
+      alert('Please fill in all fields');
+    }
+  }
+
   onEdit(item: Task) {
-    this.taskObj = item;
+    this.taskObj = { ...item }; // Clone the object to avoid reference issues
     setTimeout(() => {
       const dat = new Date(this.taskObj.dueDate);
       const day = ('0' + dat.getDate()).slice(-2);
       const month = ('0' + (dat.getMonth() + 1)).slice(-2);
       const today = dat.getFullYear() + '-' + month + '-' + day;
       (<HTMLInputElement>document.getElementById('textDate')).value = today;
-      // if(!dateField != null) {
-      //   document.['value'] = today;
+    }, 0);
+  }
 
-      // }
-    }, 2000);
-  }
   updateTask() {
-    this.masterService.updateTask(this.taskObj).subscribe(
-      (res: ApiResponceModel) => {
-        if (res.result) {
-          alert('Task updated successfully');
-          this.loadAllTask();
-          this.taskObj = new Task();
-        }
-      },
-      (error) => {
-        alert('api call error');
-      }
+    const index = this.taskList.findIndex(
+      (task) => task.itemId === this.taskObj.itemId
     );
-  }
-  onDelete(id: number) {
-    const isConfirm = confirm('Are you sure you want delete');
-    if (isConfirm) {
-      this.masterService.deleteTask(id).subscribe(
-        (res: ApiResponceModel) => {
-          if (res.result) {
-            alert('Task deleted successfully');
-            this.loadAllTask();
-            this.taskObj = new Task();
-          }
-        },
-        (error) => {
-          alert(' api call error');
-        }
-      );
+    if (index !== -1) {
+      this.taskList[index] = { ...this.taskObj }; // Update the task in the list
+      this.resetTaskObj();
+    } else {
+      alert('Task not found for update.');
     }
   }
+
+  onDelete(id: number) {
+    const isConfirm = confirm('Are you sure you want to delete this task?');
+    if (isConfirm) {
+      // Find the index of the task with the given id
+      const index = this.taskList.findIndex((task) => task.itemId === id);
+
+      if (index !== -1) {
+        // Remove the task from the list
+        this.taskList.splice(index, 1);
+
+        // If you are using an API to delete the task on the server
+        this.masterService.deleteTask(id).subscribe(
+          (res: ApiResponceModel) => {
+            if (res.result) {
+              alert('Task deleted successfully');
+              this.loadAllTask(); // Optionally reload the task list from the server
+            }
+          },
+          (error) => {
+            alert('API call error');
+          }
+        );
+      } else {
+        alert('Task not found for deletion.');
+      }
+    }
+  }
+  // sortTasks() {
+  //   this.taskList.sort((a, b) => {
+  //     const fieldA = a[this.sortedBy];
+  //     const fieldB = b[this.sortedBy];
+
+  //     if (this.sortOrder === 'asc') {
+  //       return fieldA > fieldB ? 1 : -1;
+  //     } else {
+  //       return fieldA < fieldB ? 1 : -1;
+  //     }
+  //   });
+  // }
+
+  // onSort(field: string) {
+  //   this.sortedBy = field;
+  //   this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+  //   this.sortTasks();
+  // }
 }
